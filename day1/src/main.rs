@@ -6,20 +6,19 @@ type Depth = i32;
 fn main() -> io::Result<()>{
     let nums = io::stdin().lock().lines()
         .map(|x| x.unwrap().parse::<Depth>().unwrap()).collect::<Vec<_>>();
-    let mut prev: Option<Depth> = None;
     let mut inc = 0;
-    println!("{:?}", nums);
-    for n in nums {
+    let mut prev: Option<Depth> = None;
+    for n in nums.windows(3) {
+        let cur: Depth = n.iter().sum();
         match prev {
-            None => prev = Some(n),
+            None => (),
             Some(v) => {
-                println!("{} to {}", v, n);
-                if n > v {
+                if cur > v {
                     inc += 1;
                 }
-                prev = Some(n);
-            },
-        };
+            }
+        }
+        prev = Some(cur);
     }
     println!("Increases: {}", inc);
     Ok(())
