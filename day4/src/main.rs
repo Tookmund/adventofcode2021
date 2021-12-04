@@ -21,6 +21,7 @@ struct Cell {
 struct Board {
     board: Vec<Vec<Cell>>,
     lookup: HashMap<Num, (usize, usize)>,
+    won: bool,
 }
 
 impl Board {
@@ -28,6 +29,7 @@ impl Board {
         Board {
             board: Vec::new(),
             lookup: HashMap::new(),
+            won: false,
         }
     }
     fn populate(&mut self, line: &str) {
@@ -120,9 +122,9 @@ fn main() -> io::Result<()>{
 
     for d in draws {
         for b in boards.iter_mut() {
-            if b.mark(d) {
+            if !b.won && b.mark(d) {
                 println!("Final Score: {}", b.sum_unmarked()*d);
-                return Ok(());
+                b.won = true;
             }
         }
     }
