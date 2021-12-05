@@ -2,15 +2,33 @@ use std::io;
 use std::io::prelude::*;
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::RangeInclusive;
 
 type Num = i32;
 type Coordinate = (Num, Num);
 
-fn num_range(num1: Num, num2: Num) -> Box<dyn Iterator<Item = Num>> {
-    if num1 < num2 {
-        Box::new(num1..=num2)
+fn coord_range(coord1: Coordinate, coord2: Coordinate) -> Box<dyn Iterator<Item = Coordinate>> {
+    let mut vec: Vec<Coordinate> = Vec::new();
+
+    if coord1.0 == coord2.0 {
+        for y in num_range(coord1.1, coord2.1) {
+            vec.push((coord1.0, y))
+        }
+    } else if coord1.1 == coord2.1 {
+        for x in num_range(coord1.0, coord2.0) {
+            vec.push((x, coord1.1))
+        }
     } else {
-        Box::new((num2..=num1).rev())
+        // TODO: Diagonal
+    }
+    Box::new(vec.into_iter())
+}
+
+fn num_range(num1: Num, num2: Num) -> RangeInclusive<Num> {
+    if num1 < num2 {
+        num1..=num2
+    } else {
+        num2..=num1
     }
 }
 
@@ -28,29 +46,20 @@ impl Vents {
         }
     }
     fn add_line(&mut self, coord1: Coordinate, coord2: Coordinate) {
-        if coord1.0 == coord2.0 || coord1.1 == coord2.1 {
-            for x in num_range(coord1.0, coord2.0) {
-                for y in num_range(coord1.1, coord2.1) {
-                    match self.map.get_mut(&(x,y)) {
-                        Some(v) => *v += 1,
-                        None => {
-                            self.map.insert((x,y), 1);
-                            ()
-                        },
-                    }
-                    if x > self.max {
-                        self.max = x;
-                    } else if y > self.max {
-                        self.max = y;
-                    }
-                }
+        for (x, y) in coord_range(coord1, coord2) {
+            match self.map.get_mut(&(x,y)) {
+                Some(v) => *v += 1,
+                None => {
+                    self.map.insert((x,y), 1);
+                    ()
+                },
             }
-        } else {
-            self.add_diag_line(coord1, coord2)
+            if x > self.max {
+                self.max = x;
+            } else if y > self.max {
+                self.max = y;
+            }
         }
-    }
-    fn add_diag_line(&mut self, _coord1: Coordinate, _coord2: Coordinate) {
-        ()
     }
     fn from_buf_read(buf_read: &mut dyn BufRead) -> Self {
         let mut vent = Self::new();
