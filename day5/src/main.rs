@@ -7,6 +7,14 @@ use std::ops::RangeInclusive;
 type Num = i32;
 type Coordinate = (Num, Num);
 
+fn delta(n1: Num, n2: Num) -> Num {
+    if n1 > n2 {
+        -1
+    } else {
+        1
+    }
+}
+
 fn coord_range(coord1: Coordinate, coord2: Coordinate) -> Box<dyn Iterator<Item = Coordinate>> {
     let mut vec: Vec<Coordinate> = Vec::new();
 
@@ -19,7 +27,16 @@ fn coord_range(coord1: Coordinate, coord2: Coordinate) -> Box<dyn Iterator<Item 
             vec.push((x, coord1.1))
         }
     } else {
-        // TODO: Diagonal
+        let mut x = coord1.0;
+        let dx = delta(coord1.0, coord2.0);
+        let mut y = coord1.1;
+        let dy = delta(coord1.1, coord2.1);
+
+        while x != coord2.0+dx && y != coord2.1+dy {
+            vec.push((x,y));
+            x += dx;
+            y += dy;
+        }
     }
     Box::new(vec.into_iter())
 }
