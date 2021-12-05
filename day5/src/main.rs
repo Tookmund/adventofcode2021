@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::fmt;
 
 type Num = i32;
-const GRIDSIZE: Num = 10;
 type Coordinate = (Num, Num);
 
 fn num_range(num1: Num, num2: Num) -> Box<dyn Iterator<Item = Num>> {
@@ -18,12 +17,14 @@ fn num_range(num1: Num, num2: Num) -> Box<dyn Iterator<Item = Num>> {
 #[derive(Debug)]
 struct Vents {
     map: HashMap<Coordinate, usize>,
+    max: Num,
 }
 
 impl Vents {
     fn new() -> Self {
         Self {
             map: HashMap::new(),
+            max: 0,
         }
     }
     fn add_line(&mut self, coord1: Coordinate, coord2: Coordinate) {
@@ -36,6 +37,11 @@ impl Vents {
                             self.map.insert((x,y), 1);
                             ()
                         },
+                    }
+                    if x > self.max {
+                        self.max = x;
+                    } else if y > self.max {
+                        self.max = y;
                     }
                 }
             }
@@ -73,8 +79,8 @@ impl Vents {
 
 impl fmt::Display for Vents {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for y in 0..GRIDSIZE {
-            for x in 0..GRIDSIZE {
+        for y in 0..=self.max {
+            for x in 0..=self.max {
                 match self.map.get(&(x, y)) {
                     Some(v) => write!(f, "{}", v)?,
                     None => write!(f, ".")?,
