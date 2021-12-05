@@ -73,10 +73,6 @@ impl Vents {
 
 impl fmt::Display for Vents {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (k, v) in &self.map {
-            writeln!(f, "{:?}: {}", k, v)?
-        }
-        write!(f, "\n")?;
         for y in 0..GRIDSIZE {
             for x in 0..GRIDSIZE {
                 match self.map.get(&(x, y)) {
