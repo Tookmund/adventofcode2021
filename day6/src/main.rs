@@ -3,30 +3,23 @@ use std::io::prelude::*;
 
 #[derive(Debug)]
 struct Lantern {
-    start: usize,
     days: usize,
 }
 
 const RESET: usize = 6;
+const NEW: usize = 8;
 const DAYS: usize = 256;
 
 impl Lantern {
     fn new(days: usize) -> Self {
         Lantern {
-            start: RESET,
             days: days
-        }
-    }
-    fn new_start(days: usize) -> Self {
-        Lantern {
-            start: days,
-            days: days,
         }
     }
     fn day(&mut self) -> Option<Lantern> {
         if self.days == 0 {
             self.days = RESET;
-            Some(Self::new(RESET+2))
+            Some(Self::new(NEW))
         } else {
             self.days -= 1;
             None
@@ -34,7 +27,7 @@ impl Lantern {
     }
 }
 
-fn main() -> io::Result<()>{
+fn main() -> io::Result<()> {
     for line in io::stdin().lock().lines() {
         let mut fish = line?.split(',')
             .map(|n| n.parse::<usize>().unwrap())
@@ -50,7 +43,6 @@ fn main() -> io::Result<()>{
                 }
             }
             fish.extend(newfish);
-            //println!("After {} days: {:?}", i, fish);
             println!("Day {}", i);
         }
         println!("Total after {} days: {}", DAYS, fish.len());
