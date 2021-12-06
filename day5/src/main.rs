@@ -2,54 +2,38 @@ use std::io;
 use std::io::prelude::*;
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::RangeInclusive;
+use std::repeat;
 
 type Num = i32;
 type Coordinate = (Num, Num);
 
-fn delta(n1: Num, n2: Num) -> Num {
-    if n1 > n2 {
-        -1
-    } else {
-        1
-    }
-}
-
 fn coord_range(coord1: Coordinate, coord2: Coordinate) -> Box<dyn Iterator<Item = Coordinate>> {
-    let mut vec: Vec<Coordinate> = Vec::new();
-
     if coord1.0 == coord2.0 {
-        for y in num_range(coord1.1, coord2.1) {
-            vec.push((coord1.0, y))
-        }
+        Box::new(Iterator::zip(
+            repeat(coord1.0),
+            num_range(coord1.1, coord2.1)
+            ))
     } else if coord1.1 == coord2.1 {
-        for x in num_range(coord1.0, coord2.0) {
-            vec.push((x, coord1.1))
-        }
+        Box::new(Iterator::zip(
+            num_range(coord1.0, coord2.0),
+            repeat(coord1.1)
+            ))
     } else {
-        let mut x = coord1.0;
-        let dx = delta(coord1.0, coord2.0);
-        let mut y = coord1.1;
-        let dy = delta(coord1.1, coord2.1);
-
-        while x != coord2.0+dx && y != coord2.1+dy {
-            vec.push((x,y));
-            x += dx;
-            y += dy;
-        }
+        Box::new(Iterator::zip(
+            num_range(coord1.0, coord2.0),
+            num_range(coord1.1, coord2.1),
+            ))
     }
-    Box::new(vec.into_iter())
 }
 
-fn num_range(num1: Num, num2: Num) -> RangeInclusive<Num> {
+fn num_range(num1: Num, num2: Num) -> Box<dyn Iterator<Item = Num>> {
     if num1 < num2 {
-        num1..=num2
+        Box::new(num1..=num2)
     } else {
-        num2..=num1
+        Box::new((num2..=num1).rev())
     }
 }
 
-#[derive(Debug)]
 struct Vents {
     map: HashMap<Coordinate, usize>,
     max: Num,
@@ -93,13 +77,7 @@ impl Vents {
         vent
     }
     fn sum_overlaps(&self) -> usize {
-        let mut sum = 0;
-        for (_, v) in &self.map {
-            if *v > 1 {
-                sum += 1;
-            }
-        }
-        sum
+        self.map.iter().filter(|(_,v)| **v > 1).count()
     }
 }
 
