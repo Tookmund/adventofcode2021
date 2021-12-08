@@ -41,5 +41,10 @@ fn main() -> io::Result<()>{
 }
 
 fn required_fuel(target: Num, crabs: &[Num]) -> Num {
-    crabs.iter().map(|c| Num::abs(c-target)).sum()
+    // Triangle Numbers, factorial but with addition
+    // https://en.wikipedia.org/wiki/Triangular_number
+    crabs.iter().map(|c| {
+        let n = Num::abs(c-target);
+        (n*(n+1))/2
+    }).sum()
 }
