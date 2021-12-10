@@ -1,30 +1,26 @@
 use std::io;
-use std::collections::HashMap;
-use std::iter::{Iterator, IntoIterator};
 
-// Map initialization macro borrowed from https://stackoverflow.com/a/27582993
-macro_rules! collection {
-    // map-like
-    ($($k:expr => $v:expr),* $(,)?) => {{
-        Iterator::collect(IntoIterator::into_iter([$(($k, $v),)*]))
-    }};
+fn close_to_open(c: &char) -> Option<char> {
+    match *c {
+        ')' => Some('('),
+        ']' => Some('['),
+        '}' => Some('{'),
+        '>' => Some('<'),
+        _ => None,
+    }
 }
 
+fn invalid_score(c: &char) -> Option<usize> {
+    match *c {
+        ')' => Some(3),
+        ']' => Some(57),
+        '}' => Some(1197),
+        '>' => Some(25137),
+        _ => None,
+    }
+}
 
 fn syntax_error_score<B: io::BufRead>(bufread: B) -> io::Result<usize> {
-    let close_to_open: HashMap<char, char> = collection! {
-        ')' => '(',
-        ']' => '[',
-        '}' => '{',
-        '>' => '<',
-    };
-
-    let invalid_score: HashMap<char, usize> = collection! {
-        ')' => 3,
-        ']' => 57,
-        '}' => 1197,
-        '>' => 25137,
-    };
     let mut score = 0;
     for line in bufread.lines() {
         let mut stack: Vec<char> = Vec::new();
@@ -32,8 +28,8 @@ fn syntax_error_score<B: io::BufRead>(bufread: B) -> io::Result<usize> {
             match c {
                 ')' | ']' | '}' | '>' => {
                     let s = stack.pop().unwrap();
-                    if s != close_to_open[&c] {
-                        score += invalid_score[&c];
+                    if s != close_to_open(&c).unwrap() {
+                        score += invalid_score(&c).unwrap();
                         break;
                     }
                 },
