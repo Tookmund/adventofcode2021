@@ -82,19 +82,6 @@ impl HeightMap {
     }
 }
 
-impl FromIterator<Result<String, std::io::Error>> for HeightMap {
-    fn from_iter<I: IntoIterator<Item = Result<String, std::io::Error>>>(iter: I) -> Self {
-        HeightMap {
-            hm: iter.into_iter()
-                .map(|l|
-                    l.unwrap().chars()
-                        .map(|c| c.to_digit(10).unwrap() as usize)
-                        .collect::<Vec<usize>>())
-                .collect::<Vec<Vec<usize>>>()
-        }
-    }
-}
-
 impl<'a> FromIterator<&'a str> for HeightMap {
     fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
         HeightMap {
@@ -109,7 +96,8 @@ impl<'a> FromIterator<&'a str> for HeightMap {
 }
 
 fn main() -> io::Result<()> {
-    let hm: HeightMap = io::stdin().lock().lines().collect();
+    let lines: Vec<String> = io::stdin().lock().lines().map(|s| s.unwrap()).collect();
+    let hm: HeightMap = lines.iter().map(|s| s as &str).collect();
     println!("Risk Level: {}", hm.risk_levels());
     println!("Three Largest Basins: {}", hm.three_largest_basins());
     Ok(())
