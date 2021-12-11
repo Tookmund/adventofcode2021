@@ -1,4 +1,5 @@
 use std::io;
+use std::io::prelude::*;
 
 fn matching(c: &char) -> char {
     match *c {
@@ -120,6 +121,11 @@ mod test {
 }
 
 fn main() -> io::Result<()>{
-    println!("Incomplete Lines Score: {}", incomplete_lines_score(io::stdin().lock())?);
+    let stdin = io::stdin().lock().lines()
+        .map(|l| l.unwrap()+"\n")
+        .flat_map(|s| s.into_bytes())
+        .collect::<Vec<u8>>();
+    println!("Syntax Error Score: {}", syntax_error_score(&stdin[..])?);
+    println!("Incomplete Lines Score: {}", incomplete_lines_score(&stdin[..])?);
     Ok(())
 }
