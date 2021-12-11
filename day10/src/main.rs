@@ -1,22 +1,36 @@
 use std::io;
 
-fn close_to_open(c: &char) -> Option<char> {
+fn matching(c: &char) -> char {
     match *c {
-        ')' => Some('('),
-        ']' => Some('['),
-        '}' => Some('{'),
-        '>' => Some('<'),
-        _ => None,
+        ')' => '(',
+        ']' => '[',
+        '}' => '{',
+        '>' => '<',
+        '(' => ')',
+        '[' => ']',
+        '{' => '}',
+        '<' => '>',
+        c => panic!("Invalid matching character: {}", c),
     }
 }
 
-fn invalid_score(c: &char) -> Option<usize> {
+fn invalid_score(c: &char) -> usize {
     match *c {
-        ')' => Some(3),
-        ']' => Some(57),
-        '}' => Some(1197),
-        '>' => Some(25137),
-        _ => None,
+        ')' => 3,
+        ']' => 57,
+        '}' => 1197,
+        '>' => 25137,
+        c => panic!("Invalid invalid_score character: {}", c),
+    }
+}
+
+fn incomplete_score(c: &char) -> usize {
+    match *c {
+        ')' => 1,
+        ']' => 2,
+        '}' => 3,
+        '>' => 4,
+        c => panic!("Invalid incomplete_score character: {}", c),
     }
 }
 
@@ -28,8 +42,8 @@ fn syntax_error_score<B: io::BufRead>(bufread: B) -> io::Result<usize> {
             match c {
                 ')' | ']' | '}' | '>' => {
                     let s = stack.pop().unwrap();
-                    if s != close_to_open(&c).unwrap() {
-                        score += invalid_score(&c).unwrap();
+                    if s != matching(&c) {
+                        score += invalid_score(&c);
                         break;
                     }
                 },
@@ -40,13 +54,49 @@ fn syntax_error_score<B: io::BufRead>(bufread: B) -> io::Result<usize> {
     Ok(score)
 }
 
+fn incomplete_lines_score<B: io::BufRead>(bufread: B) -> io::Result<usize> {
+    let mut score: Vec<usize> = Vec::new();
+    for line in bufread.lines() {
+        let mut stack: Vec<char> = Vec::new();
+        for c in line?.chars() {
+            match c {
+                ')' | ']' | '}' | '>' => {
+                    let s = stack.pop().unwrap();
+                    if s != matching(&c) {
+                        stack = Vec::new();
+                        break;
+                    }
+                },
+                _ => stack.push(c),
+            }
+        }
+        if !stack.is_empty() {
+            let mut line_score = 0;
+            let mut missing: Vec<char> = Vec::new();
+            // Reverse the stack because push/pop operate on the end of a vector
+            for s in stack.iter().rev() {
+                line_score *= 5;
+                let missing_char = matching(&s);
+                missing.push(missing_char);
+                line_score += incomplete_score(&missing_char);
+            }
+            score.push(line_score);
+        }
+    }
+    score.sort();
+    if score.is_empty() {
+        return Ok(0)
+    } else {
+        Ok(score[score.len()/2])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::syntax_error_score;
+    use crate::incomplete_lines_score;
 
-    #[test]
-    fn part1_example() {
-        let ts: &[u8] = b"\
+    const EXAMPLE: &[u8] = b"\
 [({(<(())[]>[[{[]{<()<>>\n\
 [(()[<>])]({[<{<<[]>>(\n\
 {([(<{}[<>[]}>{[]{[(<()>\n\
@@ -57,11 +107,19 @@ mod test {
 [<(<(<(<{}))><([]([]()\n\
 <{([([[(<>()){}]>(<<{{\n\
 <{([{{}}[<[[[<>{}]]]>[]]";
-        assert_eq!(syntax_error_score(ts).unwrap(), 26397)
+
+    #[test]
+    fn part1_example() {
+        assert_eq!(syntax_error_score(EXAMPLE).unwrap(), 26397)
+    }
+
+    #[test]
+    fn part2_example() {
+        assert_eq!(incomplete_lines_score(EXAMPLE).unwrap(), 288957)
     }
 }
 
 fn main() -> io::Result<()>{
-    println!("Syntax Error Score: {}", syntax_error_score(io::stdin().lock())?);
+    println!("Incomplete Lines Score: {}", incomplete_lines_score(io::stdin().lock())?);
     Ok(())
 }
