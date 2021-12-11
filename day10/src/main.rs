@@ -121,10 +121,8 @@ mod test {
 }
 
 fn main() -> io::Result<()>{
-    let stdin = io::stdin().lock().lines()
-        .map(|l| l.unwrap()+"\n")
-        .flat_map(|s| s.into_bytes())
-        .collect::<Vec<u8>>();
+    let mut stdin = Vec::new();
+    io::stdin().read_to_end(&mut stdin)?;
     println!("Syntax Error Score: {}", syntax_error_score(&stdin[..])?);
     println!("Incomplete Lines Score: {}", incomplete_lines_score(&stdin[..])?);
     Ok(())
