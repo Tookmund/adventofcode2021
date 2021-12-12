@@ -1,5 +1,5 @@
 use std::io;
-//use std::io::prelude::*;
+use std::io::prelude::*;
 use std::collections::HashSet;
 use std::fmt;
 
@@ -9,7 +9,6 @@ type FlashSet = HashSet<(usize, usize)>;
 #[derive(Debug)]
 struct OctopusGrid {
     grid: Vec<Vec<Energy>>,
-    flashes: usize,
 }
 
 impl OctopusGrid {
@@ -20,21 +19,31 @@ impl OctopusGrid {
                     .map(|c| c.to_digit(10).unwrap())
                     .collect::<Vec<Energy>>()
             }).collect(),
-            flashes: 0,
         }
     }
 
     fn step_num(&mut self, steps: usize) -> usize {
         println!("Before any steps:\n{}", self);
+        let mut flashes = 0;
         for _i in 1..=steps {
-            self.next_step();
+            flashes += self.next_step();
             println!("After {} steps:\n{}", _i, self);
-            println!("Flashes: {}", self.flashes);
         }
-        self.flashes
+        flashes
     }
 
-    fn next_step(&mut self) {
+    fn all_flash(&mut self) -> Option<usize> {
+        let num_octs = self.grid.iter().flatten().count();
+        for i in 1.. {
+            if self.next_step() == num_octs {
+                println!("After {} steps:\n{}", i, self);
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    fn next_step(&mut self) -> usize {
         let mut flash_set: FlashSet = HashSet::new();
         // Increase all energy levels by 1
         for oct in self.grid.iter_mut().flatten() {
@@ -48,10 +57,10 @@ impl OctopusGrid {
                 }
             }
         }
-        self.flashes += flash_set.iter().count();
-        for (r, c) in flash_set.drain() {
-            self.grid[r][c] = 0;
+        for (r, c) in flash_set.iter() {
+            self.grid[*r][*c] = 0;
         }
+        flash_set.iter().count()
     }
 
     fn flash(&mut self, flash_set: &mut FlashSet, br: usize, bc: usize) {
@@ -102,9 +111,15 @@ fn count_flashes<B: io::BufRead>(bufread: B, steps: usize) -> usize {
     grid.step_num(steps)
 }
 
+fn all_flash_at<B: io::BufRead>(bufread: B) -> usize {
+    let mut grid = OctopusGrid::new(bufread);
+    grid.all_flash().expect("No Possible Point at Which All Flash?")
+}
+
 #[cfg(test)]
 mod test_flashes {
     use crate::count_flashes;
+    use crate::all_flash_at;
 
     const SMALL: &[u8] = b"\
 11111\n\
@@ -139,11 +154,17 @@ mod test_flashes {
     fn large_100() {
         assert_eq!(count_flashes(LARGE, 100), 1656);
     }
+
+    #[test]
+    fn large_all_flash() {
+        assert_eq!(all_flash_at(LARGE), 195);
+    }
 }
 
 fn main() -> io::Result<()>{
-    //let mut stdin = Vec::new();
-    //io::stdin().read_to_end(&mut stdin)?;
-    println!("Flashes: {}", count_flashes(io::stdin().lock(), 100));
+    let mut stdin = Vec::new();
+    io::stdin().read_to_end(&mut stdin)?;
+    println!("Flashes: {}", count_flashes(&stdin[..], 100));
+    println!("All Flash At: {}", all_flash_at(&stdin[..]));
     Ok(())
 }
