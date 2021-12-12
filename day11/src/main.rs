@@ -24,30 +24,34 @@ impl OctopusGrid {
         }
     }
 
-    fn step(&mut self, steps: usize) -> usize {
+    fn step_num(&mut self, steps: usize) -> usize {
         println!("Before any steps:\n{}", self);
-        let mut flash_set: FlashSet = HashSet::new();
         for _i in 1..=steps {
-            // Increase all energy levels by 1
-            for oct in self.grid.iter_mut().flatten() {
-                *oct += 1;
-            }
-            // Flash any octopus with a value greater than 9
-            for r in 0..self.grid.len() {
-                for c in 0..self.grid[r].len() {
-                    if self.grid[r][c] > 9 && flash_set.insert((r,c)) {
-                        self.flash(&mut flash_set, r, c);
-                    }
-                }
-            }
-            self.flashes += flash_set.iter().count();
-            for (r, c) in flash_set.drain() {
-                self.grid[r][c] = 0;
-            }
+            self.next_step();
             println!("After {} steps:\n{}", _i, self);
             println!("Flashes: {}", self.flashes);
         }
         self.flashes
+    }
+
+    fn next_step(&mut self) {
+        let mut flash_set: FlashSet = HashSet::new();
+        // Increase all energy levels by 1
+        for oct in self.grid.iter_mut().flatten() {
+            *oct += 1;
+        }
+        // Flash any octopus with a value greater than 9
+        for r in 0..self.grid.len() {
+            for c in 0..self.grid[r].len() {
+                if self.grid[r][c] > 9 && flash_set.insert((r,c)) {
+                    self.flash(&mut flash_set, r, c);
+                }
+            }
+        }
+        self.flashes += flash_set.iter().count();
+        for (r, c) in flash_set.drain() {
+            self.grid[r][c] = 0;
+        }
     }
 
     fn flash(&mut self, flash_set: &mut FlashSet, br: usize, bc: usize) {
@@ -95,7 +99,7 @@ fn neighbor_iter<T>(grid: &Vec<Vec<T>>, r: usize, c: usize) -> impl Iterator<Ite
 
 fn count_flashes<B: io::BufRead>(bufread: B, steps: usize) -> usize {
     let mut grid = OctopusGrid::new(bufread);
-    grid.step(steps)
+    grid.step_num(steps)
 }
 
 #[cfg(test)]
