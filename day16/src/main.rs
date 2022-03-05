@@ -124,6 +124,18 @@ impl Packet {
         }
         PacketData::Operator(pd)
     }
+    fn version_sum(&self) -> Num {
+        let mut vs = self.version;
+        match &self.data {
+            PacketData::Operator(pd) => {
+                for p in pd {
+                    vs += p.version_sum();
+                }
+            },
+            PacketData::Literal(_) => (),
+        }
+        vs
+    }
 }
 
 #[cfg(test)]
@@ -182,6 +194,14 @@ mod test {
                 ]
             )
         })
+    }
+
+    #[test]
+    fn test_version_sum() {
+        assert_eq!(Packet::from_bufread(&b"8A004A801A8002F478"[..]).unwrap().version_sum(), 16);
+        assert_eq!(Packet::from_bufread(&b"620080001611562C8802118E34"[..]).unwrap().version_sum(), 12);
+        assert_eq!(Packet::from_bufread(&b"C0015000016115A2E0802F182340"[..]).unwrap().version_sum(), 23);
+        assert_eq!(Packet::from_bufread(&b"A0016C880162017C3686B18A3D4780"[..]).unwrap().version_sum(), 31);
     }
 }
 
