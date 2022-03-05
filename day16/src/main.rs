@@ -5,10 +5,10 @@ use std::io::ErrorKind;
 
 use bitvec::prelude::*;
 
-type Num = u32;
+type Num = u64;
 type Endian = Msb0;
-type Bv = BitVec<u32, Endian>;
-type Bs = BitSlice<u32, Endian>;
+type Bv = BitVec<u64, Endian>;
+type Bs = BitSlice<u64, Endian>;
 
 #[derive(Debug)]
 struct Bits {
@@ -17,22 +17,12 @@ struct Bits {
 }
 
 impl Bits {
-    fn new(n: Num) -> Self {
-        let mut ret = Bits {
-            bv: n.view_bits().to_bitvec(),
-            i: 0
-        };
-        // Find first set bit in num
-        for x in &ret.bv {
-            println!("{}", x);
-            if *x {
-                break;
-            }
-            else {
-                ret.i += 1;
-            }
+    fn new(buf: &str) -> Self {
+        let num = Num::from_str_radix(buf, 16).expect("Input not valid hex!");
+        Bits {
+            bv: num.view_bits().to_bitvec(),
+            i: 64 - (buf.len()*4)
         }
-        ret
     }
     fn raw(&mut self, n: usize) -> &Bs {
         let ret = &self.bv[self.i..self.i+n];
@@ -48,6 +38,9 @@ impl Bits {
         self.i += 1;
         self.bv[c]
     }
+    fn consumed(&self) -> usize {
+        self.i
+    }
     fn back(&mut self, n: usize) {
         self.i -= n;
     }
@@ -58,7 +51,7 @@ impl Bits {
 
 #[derive(Debug)]
 enum OperatorLength {
-    TotalBits(Num),
+    TotalBits(usize),
     SubPackets(Num)
 }
 
@@ -77,8 +70,7 @@ struct Packet {
 impl Packet {
     fn from_bufread<B: io::BufRead>(bufread: B) -> io::Result<Self> {
         for line in bufread.lines() {
-            let num = Num::from_str_radix(&line?, 16).expect("Input not valid hex!");
-            let mut bits = Bits::new(num);
+            let mut bits = Bits::new(&line?);
             println!("RAW BITS: {:?}", bits);
             return Ok(Self::new(&mut bits));
         }
@@ -91,7 +83,9 @@ impl Packet {
                 4 => Self::literal(bits),
                 _ => {
                     let size = match bits.bit() {
-                        false => OperatorLength::TotalBits(bits.num(15)),
+                        false => OperatorLength::TotalBits(bits.num(15)
+                                                           .try_into()
+                                                           .expect("Can't fit 15 bits into a usize???")),
                         true => OperatorLength::SubPackets(bits.num(11))
                     };
                     Self::operator(size, bits)
@@ -112,7 +106,22 @@ impl Packet {
         PacketData::Literal(bv.load())
     }
     fn operator(size: OperatorLength, bits: &mut Bits) -> PacketData {
-        unimplemented!()
+        let mut pd = Vec::new();
+        match size {
+            OperatorLength::TotalBits(tb) => {
+                let start = bits.consumed();
+                while  (bits.consumed() - start) < tb {
+                    pd.push(Packet::new(bits));
+                    println!("Bits Consumed: {}", bits.consumed() - start);
+                }
+            }
+            OperatorLength::SubPackets(sp) => {
+                for _ in 0..sp {
+                    pd.push(Packet::new(bits));
+                }
+            },
+        }
+        PacketData::Operator(pd)
     }
 }
 
@@ -121,14 +130,56 @@ mod test {
     use crate::Packet;
     use crate::PacketData;
 
-    const EXAMPLE: &[u8] = b"D2FE28";
-    const OPERATOR: &[u8] = b"EE00D40C823060";
-
     #[test]
-    fn test_example() {
-        assert_eq!(Packet::from_bufread(EXAMPLE).unwrap(), Packet {
+    fn test_literal() {
+        assert_eq!(Packet::from_bufread(&b"D2FE28"[..]).unwrap(),
+        Packet {
             version: 6,
             data: PacketData::Literal(2021),
+        })
+    }
+
+    #[test]
+    fn test_totalbits_operator() {
+        assert_eq!(Packet::from_bufread(&b"38006F45291200"[..]).unwrap(),
+        Packet {
+            version: 1,
+            data: PacketData::Operator(
+                vec![
+                    Packet {
+                        version: 6,
+                        data: PacketData::Literal(10)
+                    },
+                    Packet {
+                        version: 2,
+                        data: PacketData::Literal(20)
+                    }
+                ]
+            )
+        })
+    }
+
+    #[test]
+    fn test_subpacket_operator() {
+        assert_eq!(Packet::from_bufread(&b"EE00D40C823060"[..]).unwrap(),
+        Packet {
+            version: 7,
+            data: PacketData::Operator(
+                vec![
+                    Packet {
+                        version: 2,
+                        data: PacketData::Literal(1),
+                    },
+                    Packet {
+                        version: 4,
+                        data: PacketData::Literal(2),
+                    },
+                    Packet {
+                        version: 1,
+                        data: PacketData::Literal(3)
+                    }
+                ]
+            )
         })
     }
 }
