@@ -5,10 +5,11 @@ use std::io::ErrorKind;
 
 use bitvec::prelude::*;
 
-type Num = u64;
+type Num = u32;
 type Endian = Msb0;
-type Bv = BitVec<u64, Endian>;
-type Bs = BitSlice<u64, Endian>;
+type BitNum = u64;
+type Bv = BitVec<BitNum, Endian>;
+type Bs = BitSlice<BitNum, Endian>;
 
 #[derive(Debug)]
 struct Bits {
@@ -18,7 +19,7 @@ struct Bits {
 
 impl Bits {
     fn new(buf: &str) -> Self {
-        let num = Num::from_str_radix(buf, 16).expect("Input not valid hex!");
+        let num = BitNum::from_str_radix(buf, 16).expect("Input not valid hex!");
         Bits {
             bv: num.view_bits().to_bitvec(),
             i: 64 - (buf.len()*4)
