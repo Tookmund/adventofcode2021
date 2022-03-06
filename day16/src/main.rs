@@ -94,7 +94,7 @@ impl Packet {
             PacketData::Operator(pd) => 1 + pd.iter().map(|p| p.total_packets()).sum::<Num>()
         }
     }
-    #[cfg(test)]
+    #[allow(dead_code)]
     fn version_sum(&self) -> Num {
         let mut vs = self.version;
         match &self.data {
@@ -192,6 +192,8 @@ fn main() -> io::Result<()>{
     env_logger::init();
     //let mut stdin = Vec::new();
     //io::stdin().read_to_end(&mut stdin)?;
-    println!("BITS: {:?}", Packet::from_bufread(io::stdin().lock())?);
+    let packet = Packet::from_bufread(io::stdin().lock())?;
+    log::debug!("BITS: {:?}", packet);
+    println!("Packet Version Sum: {}", packet.version_sum());
     Ok(())
 }
