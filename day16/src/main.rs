@@ -60,8 +60,7 @@ impl Packet {
         loop {
             // If the first bit is 0, then we're done
             let cont = bits.bit();
-            let n = bits.raw(4);
-            bv.extend_from_bitslice(&n);
+            bv.extend_from_bitslice(bits.raw(4));
             if !cont {
                 break;
             }
