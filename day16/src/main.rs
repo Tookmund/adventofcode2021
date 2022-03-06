@@ -210,6 +210,46 @@ mod test {
     fn test_version_sum_5_subpackets_countsubpackets() {
         assert_eq!(Packet::from_bufread(&b"A0016C880162017C3686B18A3D4780"[..]).unwrap().version_sum(), 31);
     }
+
+    #[test]
+    fn test_literal_sum() {
+        assert_eq!(Packet::from_bufread(&b"C200B40A82"[..]).unwrap().to_literal(), 3);
+    }
+
+    #[test]
+    fn test_literal_product() {
+        assert_eq!(Packet::from_bufread(&b"04005AC33890"[..]).unwrap().to_literal(), 54);
+    }
+
+    #[test]
+    fn test_literal_min() {
+        assert_eq!(Packet::from_bufread(&b"880086C3E88112"[..]).unwrap().to_literal(), 7);
+    }
+
+    #[test]
+    fn test_literal_max() {
+        assert_eq!(Packet::from_bufread(&b"CE00C43D881120"[..]).unwrap().to_literal(), 9);
+    }
+
+    #[test]
+    fn test_literal_less() {
+        assert_eq!(Packet::from_bufread(&b"D8005AC2A8F0"[..]).unwrap().to_literal(), 1);
+    }
+
+    #[test]
+    fn test_literal_greater() {
+        assert_eq!(Packet::from_bufread(&b"F600BC2D8F"[..]).unwrap().to_literal(), 0);
+    }
+
+    #[test]
+    fn test_literal_equal() {
+        assert_eq!(Packet::from_bufread(&b"9C005AC2F8F0"[..]).unwrap().to_literal(), 0);
+    }
+
+    #[test]
+    fn test_literal_sum_product_equal() {
+        assert_eq!(Packet::from_bufread(&b"9C0141080250320F1802104A08"[..]).unwrap().to_literal(), 1);
+    }
 }
 
 fn main() -> io::Result<()>{
