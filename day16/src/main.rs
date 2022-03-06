@@ -1,5 +1,5 @@
 use std::io;
-use std::io::prelude::*;
+//use std::io::prelude::*;
 use std::io::Error;
 use std::io::ErrorKind;
 
@@ -88,12 +88,14 @@ impl Packet {
         }
         PacketData::Operator(pd)
     }
+    #[allow(dead_code)]
     fn total_packets(&self) -> Num {
         match &self.data {
             PacketData::Literal(_) => 1,
             PacketData::Operator(pd) => 1 + pd.iter().map(|p| p.total_packets()).sum::<Num>()
         }
     }
+    #[cfg(test)]
     fn version_sum(&self) -> Num {
         let mut vs = self.version;
         match &self.data {

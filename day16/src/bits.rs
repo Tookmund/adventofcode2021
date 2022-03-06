@@ -49,10 +49,4 @@ impl Bits {
     pub fn consumed(&self) -> usize {
         self.i
     }
-    pub fn back(&mut self, n: usize) {
-        self.i -= n;
-    }
-    pub fn forward(&mut self, n: usize) {
-        self.i += n;
-    }
 }
