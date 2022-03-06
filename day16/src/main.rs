@@ -69,16 +69,16 @@ impl Packet {
         match size {
             OperatorLength::TotalBits(tb) => {
                 let start = bits.consumed();
-                while  (bits.consumed() - start) < tb {
+                while (bits.consumed() - start) < tb {
                     pd.push(Packet::new(bits));
                     println!("Bits Consumed: {}", bits.consumed() - start);
                 }
-            }
+            },
             OperatorLength::SubPackets(sp) => {
                 for _ in 0..sp {
                     pd.push(Packet::new(bits));
                 }
-            },
+            }
         }
         PacketData::Operator(pd)
     }
