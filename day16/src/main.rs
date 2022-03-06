@@ -136,119 +136,104 @@ mod test {
     use crate::Packet;
     use crate::PacketData;
 
-    #[test]
-    fn test_literal() {
-        assert_eq!(Packet::from_bufread(&b"D2FE28"[..]).unwrap(),
-        Packet {
-            version: 6,
-            data: PacketData::Literal(2021),
-        })
+    macro_rules! make_tests {
+        ( $func:expr, $( $name:ident, $input:expr, $output:expr ), +) => {
+            $(
+                #[test]
+                fn $name () {
+                    assert_eq!($func($input.as_bytes()).unwrap(), $output);
+                }
+             )*
+        }
     }
 
-    #[test]
-    fn test_totalbits_operator() {
-        assert_eq!(Packet::from_bufread(&b"38006F45291200"[..]).unwrap(),
-        Packet {
-            version: 1,
-            data: PacketData::Operator {
-                id: 6,
-                pd: vec![
-                    Packet {
-                        version: 6,
-                        data: PacketData::Literal(10)
-                    },
-                    Packet {
-                        version: 2,
-                        data: PacketData::Literal(20)
+    macro_rules! make_tests_method {
+        ( $func:expr, $( $name:ident, $input:expr, $method:ident, $output:expr ), +) => {
+            $(
+                #[test]
+                fn $name () {
+                    assert_eq!($func($input.as_bytes()).unwrap().$method(), $output);
+                }
+             )*
+        }
+    }
+
+    make_tests! {
+        Packet::from_bufread,
+            literal,
+                "D2FE28",
+                Packet {
+                    version: 6,
+                    data: PacketData::Literal(2021)
+                },
+            totalbits_operator,
+                "38006F45291200",
+                Packet {
+                    version: 1,
+                    data: PacketData::Operator {
+                        id: 6,
+                        pd: vec![
+                            Packet {
+                                version: 6,
+                                data: PacketData::Literal(10)
+                            },
+                            Packet {
+                                version: 2,
+                                data: PacketData::Literal(20)
+                            }
+                        ]
                     }
-                ]
-            }
-        })
-    }
-
-    #[test]
-    fn test_subpacket_operator() {
-        assert_eq!(Packet::from_bufread(&b"EE00D40C823060"[..]).unwrap(),
-        Packet {
-            version: 7,
-            data: PacketData::Operator {
-                id: 3,
-                pd: vec![
-                    Packet {
-                        version: 2,
-                        data: PacketData::Literal(1),
-                    },
-                    Packet {
-                        version: 4,
-                        data: PacketData::Literal(2),
-                    },
-                    Packet {
-                        version: 1,
-                        data: PacketData::Literal(3)
+                },
+            subpacket_operator,
+                "EE00D40C823060",
+                Packet {
+                    version: 7,
+                    data: PacketData::Operator {
+                        id: 3,
+                        pd: vec![
+                            Packet {
+                                version: 2,
+                                data: PacketData::Literal(1),
+                            },
+                            Packet {
+                                version: 4,
+                                data: PacketData::Literal(2),
+                            },
+                            Packet {
+                                version: 1,
+                                data: PacketData::Literal(3)
+                            }
+                        ]
                     }
-                ]
-            }
-        })
+                }
     }
 
-    #[test]
-    fn test_version_sum_packet_packet_packet() {
-        assert_eq!(Packet::from_bufread(&b"8A004A801A8002F478"[..]).unwrap().version_sum(), 16);
-    }
-
-    #[test]
-    fn test_version_sum_2_subpackets() {
-        assert_eq!(Packet::from_bufread(&b"620080001611562C8802118E34"[..]).unwrap().version_sum(), 12);
-    }
-
-    #[test]
-    fn test_version_sum_2_subpackets_totalbits() {
-        assert_eq!(Packet::from_bufread(&b"C0015000016115A2E0802F182340"[..]).unwrap().version_sum(), 23);
-    }
-
-    #[test]
-    fn test_version_sum_5_subpackets_countsubpackets() {
-        assert_eq!(Packet::from_bufread(&b"A0016C880162017C3686B18A3D4780"[..]).unwrap().version_sum(), 31);
-    }
-
-    #[test]
-    fn test_literal_sum() {
-        assert_eq!(Packet::from_bufread(&b"C200B40A82"[..]).unwrap().to_literal(), 3);
-    }
-
-    #[test]
-    fn test_literal_product() {
-        assert_eq!(Packet::from_bufread(&b"04005AC33890"[..]).unwrap().to_literal(), 54);
-    }
-
-    #[test]
-    fn test_literal_min() {
-        assert_eq!(Packet::from_bufread(&b"880086C3E88112"[..]).unwrap().to_literal(), 7);
-    }
-
-    #[test]
-    fn test_literal_max() {
-        assert_eq!(Packet::from_bufread(&b"CE00C43D881120"[..]).unwrap().to_literal(), 9);
-    }
-
-    #[test]
-    fn test_literal_less() {
-        assert_eq!(Packet::from_bufread(&b"D8005AC2A8F0"[..]).unwrap().to_literal(), 1);
-    }
-
-    #[test]
-    fn test_literal_greater() {
-        assert_eq!(Packet::from_bufread(&b"F600BC2D8F"[..]).unwrap().to_literal(), 0);
-    }
-
-    #[test]
-    fn test_literal_equal() {
-        assert_eq!(Packet::from_bufread(&b"9C005AC2F8F0"[..]).unwrap().to_literal(), 0);
-    }
-
-    #[test]
-    fn test_literal_sum_product_equal() {
-        assert_eq!(Packet::from_bufread(&b"9C0141080250320F1802104A08"[..]).unwrap().to_literal(), 1);
+    make_tests_method! {
+        Packet::from_bufread,
+            version_sum_packet_packet_packet,
+                "8A004A801A8002F478", version_sum, 16,
+            version_sum_2_subpackets,
+                "620080001611562C8802118E34", version_sum, 12,
+            version_sum_2_subpackets_totalbits,
+                "C0015000016115A2E0802F182340", version_sum, 23,
+            version_sum_5_subpackets_countsubpackets,
+                "A0016C880162017C3686B18A3D4780", version_sum, 31,
+            literal_sum,
+                "C200B40A82", to_literal, 3,
+            literal_product,
+                "04005AC33890", to_literal, 54,
+            literal_min,
+                "880086C3E88112", to_literal, 7,
+            literal_max,
+                "CE00C43D881120", to_literal, 9,
+            literal_less,
+                "D8005AC2A8F0", to_literal, 1,
+            literal_greater,
+                "F600BC2D8F", to_literal, 0,
+            literal_equal,
+                "9C005AC2F8F0", to_literal, 0,
+            literal_sum_product_equal,
+                "9C0141080250320F1802104A08", to_literal, 1
     }
 }
 
