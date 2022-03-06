@@ -3,61 +3,10 @@ use std::io::prelude::*;
 use std::io::Error;
 use std::io::ErrorKind;
 
-use bitvec::prelude::*;
-
 type Num = u32;
 
-type BitNum = u32;
-type Endian = Msb0;
-type Bv = BitVec<BitNum, Endian>;
-type Bs = BitSlice<BitNum, Endian>;
-
-#[derive(Debug)]
-struct Bits {
-    bv: Bv,
-    i: usize,
-}
-
-impl Bits {
-    fn new(buf: &str) -> Self {
-        let mut b = Bits {
-            bv: Bv::new(),
-            i: 0
-        };
-        for c in buf.as_bytes().chunks(2) {
-            let hex = std::str::from_utf8(c).expect("Invalid UTF-8?");
-            let num = u8::from_str_radix(hex, 16)
-                .expect("Input not valid hex!");
-            let nbs = num.view_bits::<Endian>();
-            println!("Hex: {} Num: {} Bits: {}", hex, num, nbs);
-            b.bv.extend_from_bitslice(nbs);
-        }
-        b
-    }
-    fn raw(&mut self, n: usize) -> &Bs {
-        let ret = &self.bv[self.i..self.i+n];
-        println!("RAW: {}", ret);
-        self.i += n;
-        ret
-    }
-    fn num(&mut self, n: usize) -> Num {
-        self.raw(n).load()
-    }
-    fn bit(&mut self) -> bool {
-        let c = self.i;
-        self.i += 1;
-        self.bv[c]
-    }
-    fn consumed(&self) -> usize {
-        self.i
-    }
-    fn back(&mut self, n: usize) {
-        self.i -= n;
-    }
-    fn forward(&mut self, n: usize) {
-        self.i += n;
-    }
-}
+mod bits;
+use bits::*;
 
 #[derive(Debug)]
 enum OperatorLength {
@@ -104,7 +53,7 @@ impl Packet {
         }
     }
     fn literal(bits: &mut Bits) -> PacketData {
-        let mut bv: Bv = BitVec::new();
+        let mut bv = Bv::new();
         loop {
             // If the first bit is 0, then we're done
             let cont = bits.bit();
