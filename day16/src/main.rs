@@ -6,8 +6,9 @@ use std::io::ErrorKind;
 use bitvec::prelude::*;
 
 type Num = u32;
+
+type BitNum = u32;
 type Endian = Msb0;
-type BitNum = u64;
 type Bv = BitVec<BitNum, Endian>;
 type Bs = BitSlice<BitNum, Endian>;
 
@@ -19,11 +20,19 @@ struct Bits {
 
 impl Bits {
     fn new(buf: &str) -> Self {
-        let num = BitNum::from_str_radix(buf, 16).expect("Input not valid hex!");
-        Bits {
-            bv: num.view_bits().to_bitvec(),
-            i: 64 - (buf.len()*4)
+        let mut b = Bits {
+            bv: Bv::new(),
+            i: 0
+        };
+        for c in buf.as_bytes().chunks(2) {
+            let hex = std::str::from_utf8(c).expect("Invalid UTF-8?");
+            let num = u8::from_str_radix(hex, 16)
+                .expect("Input not valid hex!");
+            let nbs = num.view_bits::<Endian>();
+            println!("Hex: {} Num: {} Bits: {}", hex, num, nbs);
+            b.bv.extend_from_bitslice(nbs);
         }
+        b
     }
     fn raw(&mut self, n: usize) -> &Bs {
         let ret = &self.bv[self.i..self.i+n];
