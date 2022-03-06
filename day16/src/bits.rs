@@ -36,7 +36,7 @@ impl Bits {
         ret
     }
     pub fn num(&mut self, n: usize) -> Num {
-        self.raw(n).load()
+        self.raw(n).load_be()
     }
     pub fn bit(&mut self) -> bool {
         let c = self.i;

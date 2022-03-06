@@ -62,7 +62,7 @@ impl Packet {
                 break;
             }
         }
-        PacketData::Literal(bv.load())
+        PacketData::Literal(bv.load_be())
     }
     fn operator(size: OperatorLength, bits: &mut Bits) -> PacketData {
         let mut pd = Vec::new();
