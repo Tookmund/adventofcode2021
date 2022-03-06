@@ -19,7 +19,10 @@ enum OperatorLength {
 #[derive(Debug,PartialEq)]
 enum PacketData {
     Literal(Num),
-    Operator(Vec<Packet>),
+    Operator {
+        id: Num,
+        pd: Vec<Packet>,
+    }
 }
 
 #[derive(Debug,PartialEq)]
@@ -43,14 +46,14 @@ impl Packet {
             version: bits.num(3),
             data:  match bits.num(3) {
                 4 => Self::literal(bits),
-                _ => {
+                i => {
                     let size = match bits.bit() {
                         false => OperatorLength::TotalBits(bits.num(15)
                                                            .try_into()
                                                            .expect("Can't fit 15 bits into a usize???")),
                         true => OperatorLength::SubPackets(bits.num(11))
                     };
-                    Self::operator(size, bits)
+                    Self::operator(i, size, bits)
                 }
             }
         }
@@ -67,7 +70,7 @@ impl Packet {
         }
         PacketData::Literal(bv.load_be())
     }
-    fn operator(size: OperatorLength, bits: &mut Bits) -> PacketData {
+    fn operator(id: Num, size: OperatorLength, bits: &mut Bits) -> PacketData {
         let mut pd = Vec::new();
         match size {
             OperatorLength::TotalBits(tb) => {
@@ -85,20 +88,20 @@ impl Packet {
                 }
             }
         }
-        PacketData::Operator(pd)
+        PacketData::Operator { id, pd }
     }
     #[allow(dead_code)]
     fn total_packets(&self) -> Num {
         match &self.data {
             PacketData::Literal(_) => 1,
-            PacketData::Operator(pd) => 1 + pd.iter().map(|p| p.total_packets()).sum::<Num>()
+            PacketData::Operator { pd, .. } => 1 + pd.iter().map(|p| p.total_packets()).sum::<Num>()
         }
     }
     #[allow(dead_code)]
     fn version_sum(&self) -> Num {
         let mut vs = self.version;
         match &self.data {
-            PacketData::Operator(pd) => {
+            PacketData::Operator { pd, .. } => {
                 for p in pd {
                     vs += p.version_sum();
                 }
@@ -128,8 +131,9 @@ mod test {
         assert_eq!(Packet::from_bufread(&b"38006F45291200"[..]).unwrap(),
         Packet {
             version: 1,
-            data: PacketData::Operator(
-                vec![
+            data: PacketData::Operator {
+                id: 6,
+                pd: vec![
                     Packet {
                         version: 6,
                         data: PacketData::Literal(10)
@@ -139,7 +143,7 @@ mod test {
                         data: PacketData::Literal(20)
                     }
                 ]
-            )
+            }
         })
     }
 
@@ -148,8 +152,9 @@ mod test {
         assert_eq!(Packet::from_bufread(&b"EE00D40C823060"[..]).unwrap(),
         Packet {
             version: 7,
-            data: PacketData::Operator(
-                vec![
+            data: PacketData::Operator {
+                id: 3,
+                pd: vec![
                     Packet {
                         version: 2,
                         data: PacketData::Literal(1),
@@ -163,7 +168,7 @@ mod test {
                         data: PacketData::Literal(3)
                     }
                 ]
-            )
+            }
         })
     }
 
