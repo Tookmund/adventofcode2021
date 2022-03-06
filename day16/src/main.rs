@@ -110,6 +110,25 @@ impl Packet {
         }
         vs
     }
+    fn to_literal(&self) -> Num {
+        match &self.data {
+            PacketData::Literal(lpd) => *lpd,
+            PacketData::Operator { id, pd } => {
+                let mut m = pd.iter().map(|p| p.to_literal());
+                match id {
+                    0 => m.sum(),
+                    1 => m.product(),
+                    2 => m.min().expect("No Values In Operator for Min?"),
+                    3 => m.max().expect("No Values In Operator for Max?"),
+                    4 => panic!("Invalid Operator Packet Type, Should be Literal!"),
+                    5 => if m.next() > m.next() { 1 } else { 0 },
+                    6 => if m.next() < m.next() { 1 } else { 0 },
+                    7 => if m.next() == m.next() { 1 } else { 0 },
+                    i => panic!("Invalid Packet Type {}!", i)
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -200,5 +219,6 @@ fn main() -> io::Result<()>{
     let packet = Packet::from_bufread(io::stdin().lock())?;
     log::debug!("BITS: {:?}", packet);
     println!("Packet Version Sum: {}", packet.version_sum());
+    println!("Packet Literal: {}", packet.to_literal());
     Ok(())
 }
