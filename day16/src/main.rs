@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 
 use log;
 
-type Num = u32;
+type Num = u64;
 
 mod bits;
 use bits::*;
