@@ -3,6 +3,8 @@ use std::io::prelude::*;
 use std::io::Error;
 use std::io::ErrorKind;
 
+use log;
+
 type Num = u32;
 
 mod bits;
@@ -30,12 +32,13 @@ impl Packet {
     fn from_bufread<B: io::BufRead>(bufread: B) -> io::Result<Self> {
         for line in bufread.lines() {
             let mut bits = Bits::new(&line?);
-            println!("RAW BITS: {:?}", bits);
+            log::debug!("RAW BITS: {:?}", bits);
             return Ok(Self::new(&mut bits));
         }
         Err(Error::new(ErrorKind::Other, "No Valid Packets!"))
     }
     fn new(bits: &mut Bits) -> Self {
+        log::debug!("NEW PACKET!");
         Packet {
             version: bits.num(3),
             data:  match bits.num(3) {
@@ -57,7 +60,8 @@ impl Packet {
         loop {
             // If the first bit is 0, then we're done
             let cont = bits.bit();
-            bv.extend_from_bitslice(&bits.raw(4));
+            let n = bits.raw(4);
+            bv.extend_from_bitslice(&n);
             if !cont {
                 break;
             }
@@ -68,13 +72,15 @@ impl Packet {
         let mut pd = Vec::new();
         match size {
             OperatorLength::TotalBits(tb) => {
+                log::debug!("Operator: Total Bits: {}", tb);
                 let start = bits.consumed();
                 while (bits.consumed() - start) < tb {
                     pd.push(Packet::new(bits));
-                    println!("Bits Consumed: {}", bits.consumed() - start);
+                    log::debug!("Bits Consumed: {}", bits.consumed() - start);
                 }
             },
             OperatorLength::SubPackets(sp) => {
+                log::debug!("Making {} subpackets", sp);
                 for _ in 0..sp {
                     pd.push(Packet::new(bits));
                 }
@@ -161,15 +167,28 @@ mod test {
     }
 
     #[test]
-    fn test_version_sum() {
+    fn test_version_sum_packet_packet_packet() {
         assert_eq!(Packet::from_bufread(&b"8A004A801A8002F478"[..]).unwrap().version_sum(), 16);
+    }
+
+    #[test]
+    fn test_version_sum_2_subpackets() {
         assert_eq!(Packet::from_bufread(&b"620080001611562C8802118E34"[..]).unwrap().version_sum(), 12);
+    }
+
+    #[test]
+    fn test_version_sum_2_subpackets_totalbits() {
         assert_eq!(Packet::from_bufread(&b"C0015000016115A2E0802F182340"[..]).unwrap().version_sum(), 23);
+    }
+
+    #[test]
+    fn test_version_sum_5_subpackets_countsubpackets() {
         assert_eq!(Packet::from_bufread(&b"A0016C880162017C3686B18A3D4780"[..]).unwrap().version_sum(), 31);
     }
 }
 
 fn main() -> io::Result<()>{
+    env_logger::init();
     //let mut stdin = Vec::new();
     //io::stdin().read_to_end(&mut stdin)?;
     println!("BITS: {:?}", Packet::from_bufread(io::stdin().lock())?);

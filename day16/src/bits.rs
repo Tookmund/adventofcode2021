@@ -1,9 +1,11 @@
 pub use bitvec::prelude::*;
+use log;
 
 type Endian = Msb0;
 type BitNum = u32;
 pub type Bv = BitVec<BitNum, Endian>;
 pub type Bs = BitSlice<BitNum, Endian>;
+
 
 use crate::Num;
 
@@ -24,14 +26,14 @@ impl Bits {
             let num = u8::from_str_radix(hex, 16)
                 .expect("Input not valid hex!");
             let nbs = num.view_bits::<Endian>();
-            println!("Hex: {} Num: {} Bits: {}", hex, num, nbs);
+            log::debug!("Hex: {} Num: {} Bits: {}", hex, num, nbs);
             b.bv.extend_from_bitslice(nbs);
         }
         b
     }
     pub fn raw(&mut self, n: usize) -> &Bs {
         let ret = &self.bv[self.i..self.i+n];
-        println!("RAW: {}", ret);
+        log::debug!("RAW: {}", ret);
         self.i += n;
         ret
     }
@@ -41,6 +43,7 @@ impl Bits {
     pub fn bit(&mut self) -> bool {
         let c = self.i;
         self.i += 1;
+        log::debug!("BIT: {}", self.bv[c]);
         self.bv[c]
     }
     pub fn consumed(&self) -> usize {
